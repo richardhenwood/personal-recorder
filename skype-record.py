@@ -52,7 +52,7 @@ def recordstart ():
                 '--no-cursor',
                 '--windowid=%s' % call.theirVideoXid,
                 '--display=:0.0',
-                '%s.ovg' % call.callWith]
+                '-o', '%s.ovg' % call.callWith]
         record_proc = sub.Popen(recordCMD, env={'PULSE_SOURCE':'waxdisknull.monitor'})
         if False: 
             nulfp = open(os.devnull, "w")
