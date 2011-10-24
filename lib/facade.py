@@ -136,7 +136,7 @@ class Skype(threading.Thread):
             #print "pid = ", current_pid, " wid = ", current_xid, " name = ", current_name
             self.call_window = current_window
             self.call_running = True
-            call = CallPeople(current_xid, theirAudio, None, yourAudio, 'skype_test')
+            call = CallPeople(current_xid, theirAudio, None, yourAudio, current_name)
             self.signal_call_start(call)
 
     def window_closed (self, current_screen, current_window):
