@@ -23,6 +23,7 @@ try:
     import sys
     import signal
     import subprocess as sub
+    import datetime
 except Exception, e:
     print "some required imports were not found: %s\n" % e
     sys.exit(1)
@@ -52,7 +53,8 @@ def recordstart ():
                 '--no-cursor',
                 '--windowid=%s' % call.theirVideoXid,
                 '--display=:0.0',
-                '-o', '%s.ogv' % call.callWith.replace(' ', '_')]
+                '-o', '%s-%s.ogv' % (call.callWith.replace(' ', '_'), 
+                    datetime.datetime.now().strftime("%Y-%m-%dT%H%M%S"))]
         record_proc = sub.Popen(recordCMD, env={'PULSE_SOURCE':'waxdisknull.monitor'})
         if False: 
             nulfp = open(os.devnull, "w")
