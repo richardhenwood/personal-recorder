@@ -94,7 +94,7 @@ def recordstop():
 def connectAudio(source):
     global my_pa_mods
     paCMD = 'pactl load-module module-loopback source=%s sink=%s' % (source, mysink) 
-    #print 'paCMD = %s' % paCMD
+    print 'paCMD = %s' % paCMD
     p = sub.Popen(paCMD,shell=True,stdout=sub.PIPE,stderr=sub.PIPE)
     output, errors = p.communicate() 
     print "pactl complete: output '%s' error '%s'" % (output.rstrip(), errors)
@@ -102,9 +102,10 @@ def connectAudio(source):
 
 
 def setupAudio ():
-    p = sub.Popen('pactl list | grep waxdisknull',shell=True,stdout=sub.PIPE,stderr=sub.PIPE)
+    p = sub.Popen('pactl list | grep %s' % mysink, shell=True,stdout=sub.PIPE,stderr=sub.PIPE)
     output, errors = p.communicate() 
-    if output is '':
+    #print "is waxdisk available?: output '%s' error '%s'" % (output, errors)
+    if output.rstrip() == '':
         print 'waxdisknull is not available.' 
         print 'creating null-sink:'
         p = sub.Popen('pactl load-module module-null-sink sink_name="waxdisknull"',shell=True,stdout=sub.PIPE,stderr=sub.PIPE)
