@@ -34,32 +34,34 @@ class Skype(threading.Thread):
     def __init__(self, pid):
         threading.Thread.__init__(self)
         self.pid = pid
-        self.callstart_listeners = None
+        self.callstart_listeners = []
+        self.callend_listeners = []
+        self.recordstart_listeners = []
+        self.recordstop_listeners = []
         self.call_running = False
         self.call_window = None
-        self.recordstart_listeners = None
-        self.recordend_listeners = None
         self.gui = False
 
     def add_callstart_listener (self, func):
         ''' @todo: this should a list. '''
-        self.callstart_listeners = func
+        self.callstart_listeners.append(func)
 
     def add_callend_listener (self, func):
         ''' @todo: this should a list. '''
-        self.callend_listeners = func
+        self.callend_listeners.append(func)
 
     def add_recordstart_listener (self, func):
         ''' @todo: this should a list. '''
-        self.recordstart_listeners = func
+        self.recordstart_listeners.append(func)
 
     def add_recordstop_listener (self, func):
         ''' @todo: this should a list. '''
-        self.recordstop_listeners = func
+        self.recordstop_listeners.append(func)
 
 
     def signal_call_start (self, call):
-        self.callstart_listeners(call)
+        for listener in self.callstart_listeners:
+            listener(call)
         if not self.gui:
             self.gui = True
             gui = RecordControlGui(self) 
@@ -67,15 +69,19 @@ class Skype(threading.Thread):
         pass
 
     def signal_call_end (self):
-        self.callend_listeners()
+        for listener in self.callend_listeners:
+            listener(call)
         pass
 
     def signal_record_start(self):
-        self.recordstart_listeners()
+        for listener in self.recordstart_listeners:
+            listener(call)
+        pass
 
     def signal_record_stop(self):
-        self.recordstop_listeners()
-
+        for listener in self.recordstop_listeners:
+            listener(call)
+        pass
 
     def get_audio (self):
         ################################################
