@@ -39,6 +39,7 @@ class Skype(threading.Thread):
         self.call_window = None
         self.recordstart_listeners = None
         self.recordend_listeners = None
+        self.gui = False
 
     def add_callstart_listener (self, func):
         ''' @todo: this should a list. '''
@@ -59,8 +60,10 @@ class Skype(threading.Thread):
 
     def signal_call_start (self, call):
         self.callstart_listeners(call)
-        gui = RecordControlGui(self) 
-        gui.main()
+        if not self.gui:
+            self.gui = True
+            gui = RecordControlGui(self) 
+            gui.main()
         pass
 
     def signal_call_end (self):
@@ -133,7 +136,7 @@ class Skype(threading.Thread):
             yourAudio, theirAudio = self.get_audio()
             #print "audio = %s %s\n\n" % (yourAudio[0], theirAudio[0])
             #print  current_window
-            #print "pid = ", current_pid, " wid = ", current_xid, " name = ", current_name
+            print "pid = ", current_pid, " wid = ", current_xid, " name = ", current_name
             self.call_window = current_window
             self.call_running = True
             call = CallPeople(current_xid, theirAudio, None, yourAudio, current_name)
