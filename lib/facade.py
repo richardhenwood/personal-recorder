@@ -41,11 +41,9 @@ class Skype(threading.Thread):
         self.current_call = None
 
     def add_callstart_listener (self, func):
-        ''' @todo: this should a list. '''
         self.callstart_listeners.append(func)
 
     def add_callend_listener (self, func):
-        ''' @todo: this should a list. '''
         self.callend_listeners.append(func)
 
     def signal_call_start (self, call):
