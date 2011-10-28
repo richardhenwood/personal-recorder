@@ -24,108 +24,101 @@ try:
     import signal
     import subprocess as sub
     import datetime
+    #import threading
+    import pygtk, gtk, gobject
+    from record_gui import RecordControlGui
 except Exception, e:
     print "some required imports were not found: %s\n" % e
     sys.exit(1)
 
-record_proc = None
-mysink = 'waxdisknull'
-my_pa_mods = []
-current_call = None
 
-def callstart (call):
-    global record_proc
-    global current_call
-    print "call has begun with xid: ", call.theirVideoXid
-    connectAudio(call.theirAudio)
-    connectAudio(call.yourAudio)
-    current_call = call
+gobject.threads_init()
 
 
-def recordstart ():
-    global current_call
-    global record_proc
-    call = current_call
-    print "STARTING RECORDING!"
-    print "DO NOT MOVE THE SKYPE WINDOW!"
-    if True: 
-        recordCMD = ['/usr/bin/recordmydesktop',
-                '--no-cursor',
-                '--windowid=%s' % call.theirVideoXid,
-                '--display=:0.0',
-                '-o', '%s-%s.ogv' % (call.callWith.replace(' ', '_'), 
-                    datetime.datetime.now().strftime("%Y-%m-%dT%H%M%S"))]
-        record_proc = sub.Popen(recordCMD, env={'PULSE_SOURCE':'waxdisknull.monitor'})
-        if False: 
-            nulfp = open(os.devnull, "w")
-            parecCMD = ['/usr/bin/parec',
-                    '-r',
-                    '-d', 'waxdisknull.monitor']
-            recordCMD = ['/usr/bin/ffmpeg',
-                    '-f','x11grab',
-                    '-y',
-                    '-r','25',
-                    '-s','100x100',
-                    '-i',':0.0+100,100',
-                    '-vcodec','ffv1',
-                    '-f','alsa',
-                    '-i','-',
-                    '-acodec','pcm_s16le',
-                    '-sameq','/tmp/out.avi'
-                    ]
+class Recorder():
+    
+    def __init__(self): 
+        self.record_proc = None
+        self.mysink = 'waxdisknull'
+        self.my_pa_mods = []
+        self.current_call = None
+        self.gui = None
+        self.statusLabel = None
 
-            #recordCMD = 'PULSE_SOURCE=%s.monitor recordmydesktop --no-cursor --windowid=%s %s.ovg' % (mysink, call.theirVideoXid, call.callWith)
-            print recordCMD
-            parec_proc = sub.Popen(parecCMD, stdout=sub.PIPE)
-            record_proc = sub.Popen(recordCMD, stdin=parec_proc.stdout)
-            #parec_proc.stdout.close()
-            parec_proc.communicate()
-            record_proc.communicate()
+    def setStatusLabel (self, label):
+        self.statusLabel = label
 
-        #record_proc.communicate()
-        print "\n\npid = %s\n\n" % record_proc.pid 
+    def callstart (self, call):
+        self.current_call = call
+        self.statusLabel.set_text("call in progress")
+        print "call has begun with xid: ", call.theirVideoXid
+        self.connectAudio(call.theirAudio)
+        self.connectAudio(call.yourAudio)
 
-def recordstop():
-    global record_proc
-    print 'RECORDING STOPPED:'
-    os.kill(record_proc.pid, signal.SIGTERM)
-    pass
+    def recordstart (self, data=None):
+        if self.current_call is None:
+            print "No call currently in progress. Not recording.\n"
+            return
+        print "starting to record."
+        print "DO NOT MOVE THE SKYPE CALL WINDOW!"
+        if True: 
+            recordCMD = ['/usr/bin/recordmydesktop',
+                    '--no-cursor',
+                    '--windowid=%s' % self.current_call.theirVideoXid,
+                    '--display=:0.0',
+                    '-o', '%s-%s.ogv' % (self.current_call.callWith.replace(' ', '_'), 
+                        datetime.datetime.now().strftime("%Y-%m-%dT%H%M%S"))]
+            self.record_proc = sub.Popen(recordCMD, env={'PULSE_SOURCE':'waxdisknull.monitor'})
+            print "\n\npid = %s\n\n" % self.record_proc.pid 
 
-def connectAudio(source):
-    global my_pa_mods
-    paCMD = 'pactl load-module module-loopback source=%s sink=%s' % (source, mysink) 
-    print 'paCMD = %s' % paCMD
-    p = sub.Popen(paCMD,shell=True,stdout=sub.PIPE,stderr=sub.PIPE)
-    output, errors = p.communicate() 
-    print "pactl complete: output '%s' error '%s'" % (output.rstrip(), errors)
-    my_pa_mods.append(output.rstrip())
+    def recordstop(self, data=None):
+        if self.current_call is None:
+            print "No call currently in progress. Ignoring stop.\n"
+            return
+        print 'RECORDING STOPPED:'
+        os.kill(self.record_proc.pid, signal.SIGTERM)
+        pass
 
-
-def setupAudio ():
-    p = sub.Popen('pactl list | grep %s' % mysink, shell=True,stdout=sub.PIPE,stderr=sub.PIPE)
-    output, errors = p.communicate() 
-    #print "is waxdisk available?: output '%s' error '%s'" % (output, errors)
-    if output.rstrip() == '':
-        print 'waxdisknull is not available.' 
-        print 'creating null-sink:'
-        p = sub.Popen('pactl load-module module-null-sink sink_name="waxdisknull"',shell=True,stdout=sub.PIPE,stderr=sub.PIPE)
-        output, errors = p.communicate() 
-        print 'errors: %s' % errors
-
-def callend ():
-    global record_proc
-    global my_pa_mods
-    print 'call ended'
-    os.kill(record_proc.pid, signal.SIGTERM)
-    for modid in my_pa_mods:
-        print "removing pa mod: %s" % modid
-        paCMD = 'pactl unload-module %s' % modid
+    def connectAudio(self, source):
+        paCMD = 'pactl load-module module-loopback source=%s sink=%s' % (source, self.mysink) 
+        #print 'paCMD = %s' % paCMD
         p = sub.Popen(paCMD,shell=True,stdout=sub.PIPE,stderr=sub.PIPE)
         output, errors = p.communicate() 
-        print "pactl complete: output '%s' error '%s'" % (output, errors)
-    my_pa_mods = []
-    #record_proc.send_signal(signal.SIGHUP)
-    #record_proc.send_signal(signal.SIGKILL)
+        #print "pactl complete: output '%s' error '%s'" % (output.rstrip(), errors)
+        self.my_pa_mods.append(output.rstrip())
+
+
+    def setupAudio (self):
+        p = sub.Popen('pactl list | grep %s' % self.mysink, shell=True,stdout=sub.PIPE,stderr=sub.PIPE)
+        output, errors = p.communicate() 
+        #print "is waxdisk available?: output '%s' error '%s'" % (output, errors)
+        if output.rstrip() == '':
+            print 'waxdisknull is not available.' 
+            print 'creating null-sink:'
+            p = sub.Popen('pactl load-module module-null-sink sink_name="waxdisknull"',shell=True,stdout=sub.PIPE,stderr=sub.PIPE)
+            output, errors = p.communicate() 
+            print 'errors: %s' % errors
+
+    def callend (self):
+        print 'call ended'
+        self.statusLabel.set_text("")
+        self.current_call = None
+        os.kill(self.record_proc.pid, signal.SIGTERM)
+        for modid in self.my_pa_mods:
+            print "removing pa mod: %s" % modid
+            paCMD = 'pactl unload-module %s' % modid
+            p = sub.Popen(paCMD,shell=True,stdout=sub.PIPE,stderr=sub.PIPE)
+            output, errors = p.communicate() 
+            print "pactl complete: output '%s' error '%s'" % (output, errors)
+        self.my_pa_mods = []
+
+def main_quit(obj):
+    """main_quit function, it stops the thread and the gtk's main loop"""
+    global s
+    #Stopping the thread and the gtk's main loop
+    #s.stop()
+    gtk.main_quit()
+
 
 if __name__ == '__main__':
     # get the pid of skype
@@ -148,9 +141,28 @@ if __name__ == '__main__':
     print "skype pid found: %s . When a call starts," % skype_pid
     print "you should see a window to allow you to record."
     s = Skype(skype_pid)
-    s.add_callstart_listener(callstart)
-    s.add_callend_listener(callend)
-    s.add_recordstart_listener(recordstart)
-    s.add_recordstop_listener(recordstop)
-    setupAudio()
+    r = Recorder()
+
+    window = gtk.Window()
+    startbut = gtk.Button("start recording")
+    startbut.connect("clicked", r.recordstart)
+    stopbut = gtk.Button("stop recording")
+    stopbut.connect("clicked", r.recordstop)
+    statuslabel = gtk.Label("")
+
+    fix = gtk.Fixed()
+    fix.put(statuslabel, 20, 00)
+    fix.put(startbut, 20, 60)
+    fix.put(stopbut, 20, 120)
+    window.add(fix)
+    window.show_all()    
+    window.connect('destroy', main_quit)
+    
+    s.add_callstart_listener(r.callstart)
+    s.add_callend_listener(r.callend)
+
+    r.setupAudio()
+    r.setStatusLabel(statuslabel)
     s.start()
+    gtk.main()
+
