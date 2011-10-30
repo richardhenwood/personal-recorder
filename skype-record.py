@@ -26,7 +26,7 @@ try:
     import datetime
     #import threading
     import pygtk, gtk, gobject
-    from record_gui import RecordControlGui
+#    from record_gui import RecordControlGui
 except Exception, e:
     print "some required imports were not found: %s\n" % e
     sys.exit(1)
@@ -64,6 +64,7 @@ class Recorder():
         if True: 
             recordCMD = ['/usr/bin/recordmydesktop',
                     '--no-cursor',
+                    '--fps', '25',
                     '--windowid=%s' % self.current_call.theirVideoXid,
                     '--display=:0.0',
                     '-o', '%s-%s.ogv' % (self.current_call.callWith.replace(' ', '_'), 
