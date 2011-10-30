@@ -133,7 +133,7 @@ if __name__ == '__main__':
             if bits[4] == 'skype':
                 skype_pid = bits[0]
         except IndexError, e:
-            print e
+            print "cannot find skype process." 
 
     if skype_pid is None:
         print "skype pid cannot be found. Check skype is running."
