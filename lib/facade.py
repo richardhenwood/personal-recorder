@@ -91,7 +91,8 @@ class Skype(threading.Thread):
         if current_pid == 0:
             current_pid = os.popen("xprop -id %s | awk '/_NET_WM_PID/ {print $NF}' " % current_xid).read()
 
-        if int(current_pid) == int(self.pid) and \
+        if current_pid is not None and \
+                int(current_pid) == int(self.pid) and \
                 (self.call_running == False) and \
                 ('Call' in current_name):
             yourAudio, theirAudio = self.get_audio()
