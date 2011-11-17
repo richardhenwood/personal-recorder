@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 #This file is part of Skype-record.
 #
 #Foobar is free software: you can redistribute it and/or modify
@@ -25,14 +24,24 @@ try:
     import subprocess as sub
     import datetime
     #import threading
-    import pygtk, gtk, gobject
+    #import pygtk, gtk, gobject
+    from gi.repository import GObject
+    from gi.repository import Gtk
+    from gi.repository import Gdk
+    #from gi.repository import WebKit
+except ImportError:
+    import pygtk
+    pygtk.require("2.0")
+    import glib as GObject
+    import gtk as Gtk
+    import webkit as WebKit
 #    from record_gui import RecordControlGui
 except Exception, e:
     print "some required imports were not found: %s\n" % e
     sys.exit(1)
 
 
-gobject.threads_init()
+GObject.threads_init()
 
 
 class Recorder():
@@ -65,14 +74,11 @@ class Recorder():
             recordCMD = ['/usr/bin/recordmydesktop',
                     '--no-cursor',
                     '--fps', '25',
-                    '--width','320',
-                    '--height','238',
-                    '-x','17',
-                    '-y','40',
                     '--windowid=%s' % self.current_call.theirVideoXid,
                     '--display=:0.0',
                     '-o', '%s-%s.ogv' % (self.current_call.callWith.replace(' ', '_'), 
                         datetime.datetime.now().strftime("%Y-%m-%dT%H%M%S"))]
+            print " ".join(recordCMD)
             self.record_proc = sub.Popen(recordCMD, env={'PULSE_SOURCE':'waxdisknull.monitor'})
             print "\n\npid = %s\n\n" % self.record_proc.pid 
 
@@ -109,53 +115,76 @@ class Recorder():
         self.statusLabel.set_text("")
         self.current_call = None
         os.kill(self.record_proc.pid, signal.SIGTERM)
+        self.cleanupAudio()
+
+    def cleanupAudio(self):
+        if self.my_pa_mods == []:
+            return
+        print "Cleaning up audio hooks.",
+        res = ""
+        err = ""
         for modid in self.my_pa_mods:
-            print "removing pa mod: %s" % modid
             paCMD = 'pactl unload-module %s' % modid
             p = sub.Popen(paCMD,shell=True,stdout=sub.PIPE,stderr=sub.PIPE)
             output, errors = p.communicate() 
-            print "pactl complete: output '%s' error '%s'" % (output, errors)
+            res += " removed %s " % modid
+            if errors is not "":
+                err += errors
+            #print "pactl complete: output '%s' error '%s'" % (output, errors)
         self.my_pa_mods = []
+        #print " %s %s " % (res, err)
+
+    def cleanup(self):
+        self.cleanupAudio()
+
+
+
+s = None
+r = None
 
 def main_quit(obj):
     """main_quit function, it stops the thread and the gtk's main loop"""
-    global s
+    global s, r
     #Stopping the thread and the gtk's main loop
-    #s.stop()
-    gtk.main_quit()
+    s.stop()
+    r.cleanup()
+    Gtk.main_quit()
 
 
-if __name__ == '__main__':
+def main():
+    global s, r
+    GObject.threads_init(None)
+
     # get the pid of skype
     skype_pid = None
     ps = sub.Popen(['ps', 'x'], stdout=sub.PIPE)
     out = ps.communicate()[0]
     processes = out.split('\n')
     for proc in processes:
-        #bits = string.split(proc, sep=whitespace)
         bits = proc.split()
         try: 
             if bits[4] == 'skype':
                 skype_pid = bits[0]
+                break
         except IndexError, e:
-            print "cannot find skype process." 
+            print "Problem searching for skype in process list: %s" % e 
 
     if skype_pid is None:
         print "skype pid cannot be found. Check skype is running."
-        os.exit(1)
+        sys.exit(2)
     print "skype pid found: %s . When a call starts," % skype_pid
     print "you should see a window to allow you to record."
     s = Skype(skype_pid)
     r = Recorder()
 
-    window = gtk.Window()
-    startbut = gtk.Button("start recording")
+    window = Gtk.Window()
+    startbut = Gtk.Button("start recording")
     startbut.connect("clicked", r.recordstart)
-    stopbut = gtk.Button("stop recording")
+    stopbut = Gtk.Button("stop recording")
     stopbut.connect("clicked", r.recordstop)
-    statuslabel = gtk.Label("")
+    statuslabel = Gtk.Label("")
 
-    fix = gtk.Fixed()
+    fix = Gtk.Fixed()
     fix.put(statuslabel, 20, 00)
     fix.put(startbut, 20, 60)
     fix.put(stopbut, 20, 120)
@@ -168,6 +197,10 @@ if __name__ == '__main__':
 
     r.setupAudio()
     r.setStatusLabel(statuslabel)
+    Gdk.threads_enter()
     s.start()
-    gtk.main()
+    #Gtk.main()
+    Gdk.threads_leave()
 
+if __name__ == '__main__':
+    sys.exit(main())

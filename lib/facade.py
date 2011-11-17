@@ -15,17 +15,39 @@
 #
 # copyright 2011, Richard Henwood <rjhenwood@yahoo.co.uk>
 
-import Xlib
-import Xlib.display
-import Xlib.Xatom
-import threading
-import gobject, gtk, wnck
-#import pygtk
-import time 
-import os
-import sys
-import signal
-import subprocess as sub
+gtk2 = False
+
+try:
+    import Xlib
+    import Xlib.display
+    import Xlib.Xatom
+    import threading
+    #import gobject, gtk, wnck
+    from gi.repository import Gtk 
+    from gi.repository import GObject
+    from gi.repository import WebKit
+    from gi.repository import Wnck 
+    #import pygtk
+    from time import sleep
+    import os
+    import sys
+    import signal
+    import subprocess as sub
+except ImportError, e: 
+    print "Problem importing: %s" % e
+
+    # this is here to try and provide gtk 2 compatibility.
+    # but I think this is too tricky at this stage.
+    import pygtk
+    pygtk.require("2.0")
+    import glib as GObject
+    import gtk as Gtk
+    import webkit as WebKit
+    import wnck
+    gtk2 = True
+except Exception, e:
+    print "some required imports were not found: %s\n" % e
+    sys.exit(1)
 
 class Skype(threading.Thread): 
     _instance = None
@@ -72,7 +94,7 @@ class Skype(threading.Thread):
     def application_change (self, screen, stack):
         current_window = screen.get_active_window()
         if current_window is None:
-            time.sleep(0.1)
+            sleep(0.1)
             current_window = screen.get_active_window()
             if current_window is None:
                 print '''cannot get current window. setting call_running = false.'''
@@ -114,12 +136,18 @@ class Skype(threading.Thread):
             self.signal_call_end()
 
     def run(self):
-        screen = wnck.screen_get_default()
+        screen = Wnck.Screen.get_default()
+        if gtk2:
+            screen = wnck.screen_get_default()
         screen.force_update()
         screen.connect("active_window_changed", self.application_change)
         screen.connect("window_closed", self.window_closed)
-        gobject.MainLoop().run()
+        #gobject.MainLoop().run()
+        Gtk.main()
 
+    def stop(self):
+        ''' @todo: check that nothing actually needs to be cleaned up.'''
+        pass
 
 class CallPeople:
     def __init__(self, theirVideoXid, theirAudio, yourVideo, yourAudio, yourCaller):
