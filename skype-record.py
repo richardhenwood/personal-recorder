@@ -23,8 +23,10 @@ try:
     import signal
     import subprocess as sub
     import datetime
+    import time
     #import threading
     #import pygtk, gtk, gobject
+    from RfPulse.src.RfPulseClient import RfPulseClient
     from gi.repository import GObject
     from gi.repository import Gtk
     from gi.repository import Gdk
@@ -115,24 +117,43 @@ class Recorder():
         self.statusLabel.set_text("")
         self.current_call = None
         os.kill(self.record_proc.pid, signal.SIGTERM)
-        self.cleanupAudio()
+        #self.cleanupAudio()
 
     def cleanupAudio(self):
-        if self.my_pa_mods == []:
-            return
-        print "Cleaning up audio hooks.",
-        res = ""
-        err = ""
-        for modid in self.my_pa_mods:
-            paCMD = 'pactl unload-module %s' % modid
-            p = sub.Popen(paCMD,shell=True,stdout=sub.PIPE,stderr=sub.PIPE)
-            output, errors = p.communicate() 
-            res += " removed %s " % modid
-            if errors is not "":
-                err += errors
-            #print "pactl complete: output '%s' error '%s'" % (output, errors)
-        self.my_pa_mods = []
-        #print " %s %s " % (res, err)
+        print "Checking for dangling skype-record audio hooks.",
+        try: 
+            self.waiting_to_connect = True
+            pa = RfPulseClient("skyperec tidyup")
+            pa.events['contextConnected'].append(self.paConnectHandler)
+            pa.connect()
+            while self.waiting_to_connect:
+                time.sleep(0.1)
+
+            pa.getModuleInfoList()
+            self.waiting_to_connect = True
+            pa.events['moduleInfoList'].append(self.paDataReady)
+            while self.waiting_to_connect:
+                time.sleep(0.1)
+            for mod in pa.modules:
+                if mod.name == "module-loopback":
+                    if "sink=waxdisknull" in mod.argument:
+                        self.paModRemove(mod.index)
+                        #print "should remove: %s %s" % (mod.index, mod.argument)
+            pa.disconnect()
+        except Exception, e:
+            print "broken: %s" % e
+
+    def paConnectHandler(self, userData):
+        self.waiting_to_connect = False
+
+    def paDataReady(self, userData):
+        self.waiting_to_connect = False
+
+    def paModRemove(self, index):
+        paCMD = 'pactl unload-module %s' % index
+        p = sub.Popen(paCMD,shell=True,stdout=sub.PIPE,stderr=sub.PIPE)
+        output, errors = p.communicate()
+        print "removed mod index %s: output '%s' error '%s'" % (index, output, errors)
 
     def cleanup(self):
         self.cleanupAudio()
@@ -176,6 +197,8 @@ def main():
     print "you should see a window to allow you to record."
     s = Skype(skype_pid)
     r = Recorder()
+    # clean up incase we startying in a dirty state (i.e. s-r crashed last run)
+    r.cleanupAudio()
 
     window = Gtk.Window()
     startbut = Gtk.Button("start recording")
