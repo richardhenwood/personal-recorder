@@ -116,7 +116,9 @@ class Recorder():
         print 'call ended'
         self.statusLabel.set_text("")
         self.current_call = None
-        os.kill(self.record_proc.pid, signal.SIGTERM)
+        if self.record_proc is not None:
+            os.kill(self.record_proc.pid, signal.SIGTERM)
+        self.record_proc = None
         #self.cleanupAudio()
 
     def cleanupAudio(self):
