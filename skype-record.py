@@ -49,12 +49,14 @@ GObject.threads_init()
 class Recorder():
     
     def __init__(self): 
-        self.record_proc = None
+        self.record_them_proc = None
+        self.record_me_proc = None
         self.mysink = 'waxdisknull'
         self.my_pa_mods = []
         self.current_call = None
         self.gui = None
         self.statusLabel = None
+        self.myvideo = '/dev/video2'
 
     def setStatusLabel (self, label):
         self.statusLabel = label
@@ -73,23 +75,39 @@ class Recorder():
         print "starting to record."
         print "DO NOT MOVE THE SKYPE CALL WINDOW!"
         if True: 
-            recordCMD = ['/usr/bin/recordmydesktop',
+            recordthemCMD = ['/usr/bin/recordmydesktop',
                     '--no-cursor',
                     '--fps', '25',
                     '--windowid=%s' % self.current_call.theirVideoXid,
                     '--display=:0.0',
-                    '-o', '%s-%s.ogv' % (self.current_call.callWith.replace(' ', '_'), 
+                    '-o', 'them_%s-%s.ogv' % (self.current_call.callWith.replace(' ', '_'), 
                         datetime.datetime.now().strftime("%Y-%m-%dT%H%M%S"))]
-            print " ".join(recordCMD)
-            self.record_proc = sub.Popen(recordCMD, env={'PULSE_SOURCE':'waxdisknull.monitor'})
-            print "\n\npid = %s\n\n" % self.record_proc.pid 
+            #print " ".join(recordthemCMD)
+            #self.record_them_proc = sub.Popen(recordCMD, env={'PULSE_SOURCE':'waxdisknull.monitor'})
+            recordmeCMD = ['/usr/bin/ffmpeg',
+                    '-f', 'alsa',
+                    '-i', 'pulse',
+                    '-acodec','vorbis',
+                    '-f', 'video4linux2',
+                    '-s','352x240',
+                    '-i','/dev/video2',
+                    '-r','25',
+                    '-f','avi',
+                    '-vcodec','libtheora',
+                    'me_%s-%s.ogv' % (self.current_call.callWith.replace(' ', '_'),
+                        datetime.datetime.now().strftime("%Y-%m-%dT%H%M%S"))]
+            self.record_them_proc = sub.Popen(recordthemCMD, env={'PULSE_SOURCE':self.current_call.theirAudio})
+            self.record_me_proc = sub.Popen(recordmeCMD, env={'PULSE_SOURCE':self.current_call.yourAudio})
+            print "\n\ntheir record pid = %s\n\n" % self.record_them_proc.pid 
+            print "\n\nme record pid = %s\n\n" % self.record_me_proc.pid 
 
     def recordstop(self, data=None):
         if self.current_call is None:
             print "No call currently in progress. Ignoring stop.\n"
             return
         print 'RECORDING STOPPED:'
-        os.kill(self.record_proc.pid, signal.SIGTERM)
+        os.kill(self.record_them_proc.pid, signal.SIGTERM)
+        os.kill(self.record_me_proc.pid, signal.SIGTERM)
         pass
 
     def connectAudio(self, source):
@@ -116,9 +134,12 @@ class Recorder():
         print 'call ended'
         self.statusLabel.set_text("")
         self.current_call = None
-        if self.record_proc is not None:
-            os.kill(self.record_proc.pid, signal.SIGTERM)
-        self.record_proc = None
+        if self.record_them_proc is not None:
+            os.kill(self.record_them_proc.pid, signal.SIGTERM)
+        self.record_them_proc = None
+        if self.record_me_proc is not None:
+            os.kill(self.record_me_proc.pid, signal.SIGTERM)
+        self.record_me_proc = None
         #self.cleanupAudio()
 
     def cleanupAudio(self):
