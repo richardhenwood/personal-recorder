@@ -89,7 +89,7 @@ class Recorder():
                     '-i', 'pulse',
                     '-acodec','vorbis',
                     '-f', 'video4linux2',
-                    '-s','352x240',
+                    '-s','640x480',
                     '-i','/dev/video2',
                     '-r','25',
                     '-f','avi',
