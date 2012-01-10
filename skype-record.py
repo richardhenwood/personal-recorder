@@ -140,10 +140,11 @@ class Recorder():
                 if mod.name == "module-loopback":
                     if "sink=waxdisknull" in mod.argument:
                         self.paModRemove(mod.index)
-                        #print "should remove: %s %s" % (mod.index, mod.argument)
+                        print "removing dangling hook: %s %s" % (mod.index, mod.argument)
             pa.disconnect()
         except Exception, e:
             print "broken: %s" % e
+        print "skype-record audio hook check complete."
 
     def paConnectHandler(self, userData):
         self.waiting_to_connect = False
@@ -196,7 +197,7 @@ def main():
         print "skype pid cannot be found. Check skype is running."
         sys.exit(2)
     print "skype pid found: %s . When a call starts," % skype_pid
-    print "you should see a window to allow you to record."
+    print "You should see a small window to allow you to control recording."
     s = Skype(skype_pid)
     r = Recorder()
     # clean up incase we startying in a dirty state (i.e. s-r crashed last run)
