@@ -32,11 +32,13 @@ try:
     from gi.repository import Gdk
     #from gi.repository import WebKit
 except ImportError:
-    import pygtk
-    pygtk.require("2.0")
-    import glib as GObject
-    import gtk as Gtk
-    import webkit as WebKit
+    print "some required imports were not found: %s\n" % e
+    sys.exit(1)
+    #    import pygtk
+    #    pygtk.require("2.0")
+    #    import glib as GObject
+    #    import gtk as Gtk
+    #    import webkit as WebKit
 #    from record_gui import RecordControlGui
 except Exception, e:
     print "some required imports were not found: %s\n" % e
@@ -199,6 +201,11 @@ def main_quit(obj):
 def main():
     global s, r
     GObject.threads_init(None)
+
+    if not os.path.exists("/dev/video2"):
+        print "can't find /dev/video2: please check you have completed setup: http://sites.google.com/site/richardhenwood/project/skype-record"
+        sys.exit(2)
+
 
     # get the pid of skype
     skype_pid = None
