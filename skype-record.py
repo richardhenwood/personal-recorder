@@ -31,7 +31,7 @@ try:
     from gi.repository import Gtk
     from gi.repository import Gdk
     #from gi.repository import WebKit
-except ImportError:
+except ImportError, e:
     print "some required imports were not found: %s\n" % e
     sys.exit(1)
     #    import pygtk
