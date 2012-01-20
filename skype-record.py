@@ -67,8 +67,8 @@ class Recorder():
         self.current_call = call
         self.statusLabel.set_text("call in progress")
         print "call has begun with xid: ", call.theirVideoXid
-        self.connectAudio(call.theirAudio)
-        self.connectAudio(call.yourAudio)
+        #self.connectAudio(call.theirAudio)
+        #self.connectAudio(call.yourAudio)
 
     def recordstart (self, data=None):
         if self.current_call is None:
@@ -80,6 +80,7 @@ class Recorder():
             recordthemCMD = ['/usr/bin/recordmydesktop',
                     '--no-cursor',
                     '--fps', '25',
+                    '--device', 'pulse',
                     '--windowid=%s' % self.current_call.theirVideoXid,
                     '--display=:0.0',
                     '-o', 'them_%s-%s.ogv' % (self.current_call.callWith.replace(' ', '_'), 
@@ -98,6 +99,9 @@ class Recorder():
                     '-vcodec','libtheora',
                     'me_%s-%s.ogv' % (self.current_call.callWith.replace(' ', '_'),
                         datetime.datetime.now().strftime("%Y-%m-%dT%H%M%S"))]
+
+
+            print "THEIR AUDIO %s\n\n\n\n" % self.current_call.theirAudio
             self.record_them_proc = sub.Popen(recordthemCMD, env={'PULSE_SOURCE':self.current_call.theirAudio})
             self.record_me_proc = sub.Popen(recordmeCMD, env={'PULSE_SOURCE':self.current_call.yourAudio})
             print "\n\ntheir record pid = %s\n\n" % self.record_them_proc.pid 
@@ -194,7 +198,7 @@ def main_quit(obj):
     global s, r
     #Stopping the thread and the gtk's main loop
     s.stop()
-    r.cleanup()
+    #r.cleanup()
     Gtk.main_quit()
 
 
@@ -229,7 +233,7 @@ def main():
     s = Skype(skype_pid)
     r = Recorder()
     # clean up incase we startying in a dirty state (i.e. s-r crashed last run)
-    r.cleanupAudio()
+    #r.cleanupAudio()
 
     window = Gtk.Window()
     startbut = Gtk.Button("start recording")
@@ -249,7 +253,7 @@ def main():
     s.add_callstart_listener(r.callstart)
     s.add_callend_listener(r.callend)
 
-    r.setupAudio()
+    #r.setupAudio()
     r.setStatusLabel(statuslabel)
     Gdk.threads_enter()
     s.start()
