@@ -91,6 +91,7 @@ class Skype(threading.Thread):
         yourvoice = output[21:] 
         return (yourvoice, theirvoice)
 
+    # @todo: remove this redunent code
     def application_change (self, screen, stack):
         current_window = screen.get_active_window()
         if current_window is None:
@@ -127,6 +128,45 @@ class Skype(threading.Thread):
             self.current_call = call
             self.signal_call_start(call)
 
+    def window_opened (self, screen, window):
+        #print window.get_application()
+        #current_window = screen.get_active_window()
+        #if current_window is None:
+        #    sleep(0.1)
+        #    current_window = screen.get_active_window()
+        #    if current_window is None:
+        #        print '''cannot get current window. setting call_running = false.'''
+        #        self.call_running = False
+        #        return
+        current_window = window
+        current_app = current_window.get_application()
+        # hack to remove the L from the end of the xid after 'hex'ing it.
+        current_xid = str(hex(current_window.get_xid()))[0:9]
+        current_name = current_window.get_name()
+        current_pid = current_app.get_pid()
+        # skype returns PID 0 from this call.
+        # Use a hack (drop back to xprop) to get he real PID.
+        # source: http://stackoverflow.com/questions/2041532
+        # @todo: re-write this whole program in c.
+        #print "current pid = '%s'" % current_pid
+        if current_pid == 0:
+            current_pid = os.popen("xprop -id %s | awk '/_NET_WM_PID/ {print $NF}' " % current_xid).read()
+
+        if current_pid is not None and \
+                int(current_pid) == int(self.pid) and \
+                (self.call_running == False) and \
+                ('Call' in current_name):
+            yourAudio, theirAudio = self.get_audio()
+            #print "audio = %s %s\n\n" % (yourAudio[0], theirAudio[0])
+            #print  current_window
+            print "pid = ", current_pid, " wid = ", current_xid, " name = ", current_name
+            self.call_window = current_window
+            self.call_running = True
+            call = CallPeople(current_xid, theirAudio, None, yourAudio, current_name)
+            self.current_call = call
+            self.signal_call_start(call)
+
+
     def window_closed (self, current_screen, current_window):
         # this is a nasty hack to see if the call window is closed.
         # it seems gobject still throws an error in this case.
@@ -140,7 +180,8 @@ class Skype(threading.Thread):
         if gtk2:
             screen = wnck.screen_get_default()
         screen.force_update()
-        screen.connect("active_window_changed", self.application_change)
+        #screen.connect("active_window_changed", self.application_change)
+        screen.connect("window_opened", self.window_opened)
         screen.connect("window_closed", self.window_closed)
         #gobject.MainLoop().run()
         Gtk.main()
