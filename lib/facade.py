@@ -180,6 +180,12 @@ class Skype(threading.Thread):
         if gtk2:
             screen = wnck.screen_get_default()
         screen.force_update()
+        # lets check to see if there is already a call in progress:
+        window_list = screen.get_windows()
+        if len(window_list) == 0:
+            print "No windows found!"
+        for win in window_list:
+            self.window_opened(screen, win)
         #screen.connect("active_window_changed", self.application_change)
         screen.connect("window_opened", self.window_opened)
         screen.connect("window_closed", self.window_closed)
