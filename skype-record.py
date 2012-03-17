@@ -31,12 +31,14 @@ try:
     from gi.repository import Gtk
     from gi.repository import Gdk
     #from gi.repository import WebKit
-except ImportError:
-    import pygtk
-    pygtk.require("2.0")
-    import glib as GObject
-    import gtk as Gtk
-    import webkit as WebKit
+except ImportError, e:
+    print "some required imports were not found: %s\n" % e
+    sys.exit(1)
+    #    import pygtk
+    #    pygtk.require("2.0")
+    #    import glib as GObject
+    #    import gtk as Gtk
+    #    import webkit as WebKit
 #    from record_gui import RecordControlGui
 except Exception, e:
     print "some required imports were not found: %s\n" % e
@@ -49,12 +51,14 @@ GObject.threads_init()
 class Recorder():
     
     def __init__(self): 
-        self.record_proc = None
+        self.record_them_proc = None
+        self.record_me_proc = None
         self.mysink = 'waxdisknull'
         self.my_pa_mods = []
         self.current_call = None
         self.gui = None
         self.statusLabel = None
+        self.myvideo = '/dev/video2'
 
     def setStatusLabel (self, label):
         self.statusLabel = label
@@ -63,8 +67,8 @@ class Recorder():
         self.current_call = call
         self.statusLabel.set_text("call in progress")
         print "call has begun with xid: ", call.theirVideoXid
-        self.connectAudio(call.theirAudio)
-        self.connectAudio(call.yourAudio)
+        #self.connectAudio(call.theirAudio)
+        #self.connectAudio(call.yourAudio)
 
     def recordstart (self, data=None):
         if self.current_call is None:
@@ -73,23 +77,43 @@ class Recorder():
         print "starting to record."
         print "DO NOT MOVE THE SKYPE CALL WINDOW!"
         if True: 
-            recordCMD = ['/usr/bin/recordmydesktop',
+            recordthemCMD = ['/usr/bin/recordmydesktop',
                     '--no-cursor',
                     '--fps', '25',
+                    '--device', 'pulse',
                     '--windowid=%s' % self.current_call.theirVideoXid,
                     '--display=:0.0',
-                    '-o', '%s-%s.ogv' % (self.current_call.callWith.replace(' ', '_'), 
+                    '-o', 'them_%s-%s.ogv' % (self.current_call.callWith.replace(' ', '_'), 
                         datetime.datetime.now().strftime("%Y-%m-%dT%H%M%S"))]
-            print " ".join(recordCMD)
-            self.record_proc = sub.Popen(recordCMD, env={'PULSE_SOURCE':'waxdisknull.monitor'})
-            print "\n\npid = %s\n\n" % self.record_proc.pid 
+            #print " ".join(recordthemCMD)
+            #self.record_them_proc = sub.Popen(recordCMD, env={'PULSE_SOURCE':'waxdisknull.monitor'})
+            recordmeCMD = ['/usr/bin/ffmpeg',
+                    '-f', 'alsa',
+                    '-i', 'pulse',
+                    '-acodec','vorbis',
+                    '-f', 'video4linux2',
+                    '-s','640x480',
+                    '-i','/dev/video2',
+                    '-r','25',
+                    '-f','avi',
+                    '-vcodec','libtheora',
+                    'me_%s-%s.ogv' % (self.current_call.callWith.replace(' ', '_'),
+                        datetime.datetime.now().strftime("%Y-%m-%dT%H%M%S"))]
+
+
+            print "THEIR AUDIO %s\n\n\n\n" % self.current_call.theirAudio
+            self.record_them_proc = sub.Popen(recordthemCMD, env={'PULSE_SOURCE':self.current_call.theirAudio})
+            self.record_me_proc = sub.Popen(recordmeCMD, env={'PULSE_SOURCE':self.current_call.yourAudio})
+            print "\n\ntheir record pid = %s\n\n" % self.record_them_proc.pid 
+            print "\n\nme record pid = %s\n\n" % self.record_me_proc.pid 
 
     def recordstop(self, data=None):
         if self.current_call is None:
             print "No call currently in progress. Ignoring stop.\n"
             return
         print 'RECORDING STOPPED:'
-        os.kill(self.record_proc.pid, signal.SIGTERM)
+        os.kill(self.record_them_proc.pid, signal.SIGTERM)
+        os.kill(self.record_me_proc.pid, signal.SIGTERM)
         pass
 
     def connectAudio(self, source):
@@ -116,7 +140,12 @@ class Recorder():
         print 'call ended'
         self.statusLabel.set_text("")
         self.current_call = None
-        os.kill(self.record_proc.pid, signal.SIGTERM)
+        if self.record_them_proc is not None:
+            os.kill(self.record_them_proc.pid, signal.SIGTERM)
+        self.record_them_proc = None
+        if self.record_me_proc is not None:
+            os.kill(self.record_me_proc.pid, signal.SIGTERM)
+        self.record_me_proc = None
         #self.cleanupAudio()
 
     def cleanupAudio(self):
@@ -138,10 +167,11 @@ class Recorder():
                 if mod.name == "module-loopback":
                     if "sink=waxdisknull" in mod.argument:
                         self.paModRemove(mod.index)
-                        #print "should remove: %s %s" % (mod.index, mod.argument)
+                        print "removing dangling hook: %s %s" % (mod.index, mod.argument)
             pa.disconnect()
         except Exception, e:
             print "broken: %s" % e
+        print "skype-record audio hook check complete."
 
     def paConnectHandler(self, userData):
         self.waiting_to_connect = False
@@ -168,13 +198,18 @@ def main_quit(obj):
     global s, r
     #Stopping the thread and the gtk's main loop
     s.stop()
-    r.cleanup()
+    #r.cleanup()
     Gtk.main_quit()
 
 
 def main():
     global s, r
     GObject.threads_init(None)
+
+    if not os.path.exists("/dev/video2"):
+        print "can't find /dev/video2: please check you have completed setup: http://sites.google.com/site/richardhenwood/project/skype-record"
+        sys.exit(2)
+
 
     # get the pid of skype
     skype_pid = None
@@ -194,11 +229,11 @@ def main():
         print "skype pid cannot be found. Check skype is running."
         sys.exit(2)
     print "skype pid found: %s . When a call starts," % skype_pid
-    print "you should see a window to allow you to record."
+    print "You should see a small window to allow you to control recording."
     s = Skype(skype_pid)
     r = Recorder()
     # clean up incase we startying in a dirty state (i.e. s-r crashed last run)
-    r.cleanupAudio()
+    #r.cleanupAudio()
 
     window = Gtk.Window()
     startbut = Gtk.Button("start recording")
@@ -218,7 +253,7 @@ def main():
     s.add_callstart_listener(r.callstart)
     s.add_callend_listener(r.callend)
 
-    r.setupAudio()
+    #r.setupAudio()
     r.setStatusLabel(statuslabel)
     Gdk.threads_enter()
     s.start()
