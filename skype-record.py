@@ -93,7 +93,7 @@ class Recorder():
                     '-acodec','vorbis',
                     '-f', 'video4linux2',
                     '-s','640x480',
-                    '-i','/dev/video2',
+                    '-i', self.myvideo,
                     '-r','25',
                     '-f','avi',
                     '-vcodec','libtheora',
