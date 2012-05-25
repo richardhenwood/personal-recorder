@@ -93,11 +93,11 @@ class Recorder():
                     '-acodec','vorbis',
                     '-f', 'video4linux2',
                     '-s','640x480',
-                    '-i', self.myvideo,
+                    '-i',self.myvideo,
                     '-r','25',
-                    '-f','avi',
-                    '-vcodec','libtheora',
-                    'me_%s-%s.ogv' % (self.current_call.callWith.replace(' ', '_'),
+                    '-f','mpegts',
+                    #'-vcodec','libtheora',
+                    'me_%s-%s.mpeg' % (self.current_call.callWith.replace(' ', '_'),
                         datetime.datetime.now().strftime("%Y-%m-%dT%H%M%S"))]
 
 
@@ -139,13 +139,6 @@ class Recorder():
     def callend (self):
         print 'call ended'
         self.statusLabel.set_text("")
-        self.current_call = None
-        if self.record_them_proc is not None:
-            os.kill(self.record_them_proc.pid, signal.SIGTERM)
-        self.record_them_proc = None
-        if self.record_me_proc is not None:
-            os.kill(self.record_me_proc.pid, signal.SIGTERM)
-        self.record_me_proc = None
         #self.cleanupAudio()
 
     def cleanupAudio(self):
@@ -187,6 +180,13 @@ class Recorder():
 
     def cleanup(self):
         self.cleanupAudio()
+        self.current_call = None
+        if self.record_them_proc is not None:
+            os.kill(self.record_them_proc.pid, signal.SIGTERM)
+        self.record_them_proc = None
+        if self.record_me_proc is not None:
+            os.kill(self.record_me_proc.pid, signal.SIGTERM)
+        self.record_me_proc = None
 
 
 
