@@ -24,6 +24,7 @@ try:
     import subprocess as sub
     import datetime
     import time
+    import re
     #import threading
     #import pygtk, gtk, gobject
     from RfPulse.src.RfPulseClient import RfPulseClient
@@ -207,12 +208,16 @@ def main():
     GObject.threads_init(None)
 
     if not os.path.exists("/dev/video2"):
-        print "can't find /dev/video2: please check you have completed setup: http://sites.google.com/site/richardhenwood/project/skype-record"
+        print '''can't find /dev/video2: please check you have 
+        completed setup: 
+        http://sites.google.com/site/richardhenwood/project/skype-record'''
         sys.exit(2)
 
-
     # get the pid of skype
+    # and while stepping through pids, 
+    # check to see that gst is running.
     skype_pid = None
+    gst_pid = None
     ps = sub.Popen(['ps', 'x'], stdout=sub.PIPE)
     out = ps.communicate()[0]
     processes = out.split('\n')
@@ -221,13 +226,21 @@ def main():
         try: 
             if bits[4] == 'skype':
                 skype_pid = bits[0]
-                break
+                #break
+            if re.match(r'^gst.*$', bits[4]):
+                if bits[5] == 'v4l2src':
+                    gst_pid = bits[0]
         except IndexError, e:
-            print "Problem searching for skype in process list: %s" % e 
+            print "Problem searching for skype in process list: %s" % e
 
+    if gst_pid is None:
+        print '''can't find gst. You must start it manually:
+        http://sites.google.com/site/richardhenwood/project/skype-record
+        TODO automate this step.'''
+        sys.exit(3)
     if skype_pid is None:
         print "skype pid cannot be found. Check skype is running."
-        sys.exit(2)
+        sys.exit(4)
     print "skype pid found: %s . When a call starts," % skype_pid
     print "You should see a small window to allow you to control recording."
     s = Skype(skype_pid)
