@@ -234,6 +234,10 @@ class Skype(threading.Thread):
         output, errors = p.communicate()
         output = output.rstrip()  # discard the end newline.
         theirvoice = output[19:] + '.monitor'
+        # ensure the monitor mute is not set.
+        #p = sub.Popen('pactl set-source-mute \'%s\' 0' % theirvoice,shell=True,stdout=sub.PIPE,stderr=sub.PIPE)
+        #output, errors = p.communicate()
+        # get the local stream.
         p = sub.Popen('pacmd info | grep \'Default source name\'',shell=True,stdout=sub.PIPE,stderr=sub.PIPE)
         output, errors = p.communicate()
         output = output.rstrip()  # discard the end newline.

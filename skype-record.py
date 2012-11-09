@@ -84,7 +84,7 @@ class Recorder():
                     '--device', 'pulse',
                     '--windowid=%s' % self.current_call.theirVideoXid,
                     '--display=:0.0',
-                    '-o', 'them_%s-%s.ogv' % (self.current_call.callWith.replace(' ', '_'), 
+                    '-o', 'them_%s-%s.ogv' % (self.current_call.callWith.replace(' ', '_').replace('/','-'), 
                         datetime.datetime.now().strftime("%Y-%m-%dT%H%M%S"))]
             #print " ".join(recordthemCMD)
             #self.record_them_proc = sub.Popen(recordCMD, env={'PULSE_SOURCE':'waxdisknull.monitor'})
@@ -98,7 +98,7 @@ class Recorder():
                     '-r','25',
                     '-f','mpegts',
                     #'-vcodec','libtheora',
-                    'me_%s-%s.mpeg' % (self.current_call.callWith.replace(' ', '_'),
+                    'me_%s-%s.mpeg' % (self.current_call.callWith.replace(' ', '_').replace('/','-'),
                         datetime.datetime.now().strftime("%Y-%m-%dT%H%M%S"))]
 
 
@@ -117,7 +117,8 @@ class Recorder():
         os.kill(self.record_me_proc.pid, signal.SIGTERM)
         pass
 
-    def connectAudio(self, source):
+    ''' debricated. '''
+    def __connectAudio(self, source):
         paCMD = 'pactl load-module module-loopback source=%s sink=%s' % (source, self.mysink) 
         #print 'paCMD = %s' % paCMD
         p = sub.Popen(paCMD,shell=True,stdout=sub.PIPE,stderr=sub.PIPE)
