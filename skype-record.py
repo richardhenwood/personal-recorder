@@ -212,6 +212,10 @@ def main():
         print "/usr/bin/recordmydesktop can't be found."
         print "it must be installed before you can continue."
         sys.exit(2)
+    if not os.path.exists("/usr/bin/ffmpeg"):
+        print "/usr/bin/ffmpeg can't be found."
+        print "it must be installed before you can continue."
+        sys.exit(2)
     if not os.path.exists("/dev/video2"):
         print '''can't find /dev/video2: please check you have 
         completed setup: 
