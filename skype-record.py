@@ -208,12 +208,15 @@ def main_quit(obj):
 def main():
     global s, r
     GObject.threads_init(None)
-
+    if not os.path.exists("/usr/bin/recordmydesktop"):
+        print "/usr/bin/recordmydesktop can't be found."
+        print "it must be installed before you can continue."
+        sys.exit(2)
     if not os.path.exists("/dev/video2"):
         print '''can't find /dev/video2: please check you have 
         completed setup: 
         http://sites.google.com/site/richardhenwood/project/skype-record'''
-        sys.exit(2)
+        sys.exit(3)
 
     # get the pid of skype
     # and while stepping through pids, 
@@ -239,10 +242,10 @@ def main():
         print '''can't find gst. You must start it manually:
         http://sites.google.com/site/richardhenwood/project/skype-record
         TODO automate this step.'''
-        sys.exit(3)
+        sys.exit(4)
     if skype_pid is None:
         print "skype pid cannot be found. Check skype is running."
-        sys.exit(4)
+        sys.exit(5)
     print "skype pid found: %s ." % skype_pid
     print "--skype record has started ----"
     print ""
@@ -252,6 +255,7 @@ def main():
     print "DO NOT CLOSE skype-record window UNTIL YOUR RECORDING IS COMPLETE"
     print ""
     print "NOTE: a complete recording will say:"
+    print "...."
     print "Cleanning up cache..."
     print "Done!!!"
     print "Goodbye!"
