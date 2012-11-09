@@ -247,8 +247,17 @@ def main():
     print "--skype record has started ----"
     print ""
     print "You should see a small window to allow you to control recording."
+    print "During recording, there will be chatter in this window."
     print "DO NOT CLOSE THIS TERMINAL WINDOW UNTIL YOUR RECORDING IS COMPLETE"
+    print "DO NOT CLOSE skype-record window UNTIL YOUR RECORDING IS COMPLETE"
     print ""
+    print "NOTE: a complete recording will say:"
+    print "Cleanning up cache..."
+    print "Done!!!"
+    print "Goodbye!"
+    print ""
+    print ""
+
     s = Skype(skype_pid)
     r = Recorder()
     # clean up incase we startying in a dirty state (i.e. s-r crashed last run)
