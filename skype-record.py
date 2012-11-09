@@ -115,6 +115,7 @@ class Recorder():
         print 'RECORDING STOPPED:'
         os.kill(self.record_them_proc.pid, signal.SIGTERM)
         os.kill(self.record_me_proc.pid, signal.SIGTERM)
+        self.current_call = None
         pass
 
     ''' debricated. '''
@@ -242,8 +243,12 @@ def main():
     if skype_pid is None:
         print "skype pid cannot be found. Check skype is running."
         sys.exit(4)
-    print "skype pid found: %s . When a call starts," % skype_pid
+    print "skype pid found: %s ." % skype_pid
+    print "--skype record has started ----"
+    print ""
     print "You should see a small window to allow you to control recording."
+    print "DO NOT CLOSE THIS TERMINAL WINDOW UNTIL YOUR RECORDING IS COMPLETE"
+    print ""
     s = Skype(skype_pid)
     r = Recorder()
     # clean up incase we startying in a dirty state (i.e. s-r crashed last run)
