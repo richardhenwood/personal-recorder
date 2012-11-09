@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#This file is part of Skype-record.
+#This file is part of Private-Recorder.
 #
 #Foobar is free software: you can redistribute it and/or modify
 #it under the terms of the GNU General Public License as published by
@@ -12,7 +12,7 @@
 #GNU General Public License for more details.
 #
 #You should have received a copy of the GNU General Public License
-#along with skype-record.  If not, see <http://www.gnu.org/licenses/>.
+#along with Private-Recorder.  If not, see <http://www.gnu.org/licenses/>.
 #
 # copyright 2011, Richard Henwood <rjhenwood@yahoo.co.uk>
 
@@ -145,7 +145,7 @@ class Recorder():
         #self.cleanupAudio()
 
     def cleanupAudio(self):
-        print "Checking for dangling skype-record audio hooks.",
+        print "Checking for dangling Private-Recorder audio hooks.",
         try: 
             self.waiting_to_connect = True
             pa = RfPulseClient("skyperec tidyup")
@@ -167,7 +167,7 @@ class Recorder():
             pa.disconnect()
         except Exception, e:
             print "broken: %s" % e
-        print "skype-record audio hook check complete."
+        print "Private-Reocrder audio hook check complete."
 
     def paConnectHandler(self, userData):
         self.waiting_to_connect = False
@@ -219,7 +219,7 @@ def main():
     if not os.path.exists("/dev/video2"):
         print '''can't find /dev/video2: please check you have 
         completed setup: 
-        http://sites.google.com/site/richardhenwood/project/skype-record'''
+        http://sites.google.com/site/richardhenwood/project/private-recorder'''
         sys.exit(3)
 
     # get the pid of skype
@@ -244,7 +244,7 @@ def main():
 
     if gst_pid is None:
         print '''can't find gst. You must start it manually:
-        http://sites.google.com/site/richardhenwood/project/skype-record
+        http://sites.google.com/site/richardhenwood/project/private-recorder
         TODO automate this step.'''
         sys.exit(4)
     if skype_pid is None:
@@ -256,7 +256,7 @@ def main():
     print "You should see a small window to allow you to control recording."
     print "During recording, there will be chatter in this window."
     print "DO NOT CLOSE THIS TERMINAL WINDOW UNTIL YOUR RECORDING IS COMPLETE"
-    print "DO NOT CLOSE skype-record window UNTIL YOUR RECORDING IS COMPLETE"
+    print "DO NOT CLOSE private-recorder window UNTIL YOUR RECORDING IS COMPLETE"
     print ""
     print "NOTE: a complete recording will say:"
     print "...."
