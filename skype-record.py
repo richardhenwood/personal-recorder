@@ -82,8 +82,8 @@ class Recorder():
                     '--no-cursor',
                     '--fps', '25',
                     '--device', 'pulse',
-                    '--windowid=%s' % self.current_call.theirVideoXid,
-                    '--display=:0.0',
+                    '--windowid', '%s' % self.current_call.theirVideoXid,
+                    '--display', ':0',
                     '-o', 'them_%s-%s.ogv' % (self.current_call.callWith.replace(' ', '_').replace('/','-'), 
                         datetime.datetime.now().strftime("%Y-%m-%dT%H%M%S"))]
             #print " ".join(recordthemCMD)
@@ -219,7 +219,7 @@ def main():
     if not os.path.exists("/dev/video2"):
         print '''can't find /dev/video2: please check you have 
         completed setup: 
-        http://sites.google.com/site/richardhenwood/project/private-recorder'''
+        http://sites.google.com/site/richardhenwood/project/skype-record'''
         sys.exit(3)
 
     # get the pid of skype
@@ -244,7 +244,7 @@ def main():
 
     if gst_pid is None:
         print '''can't find gst. You must start it manually:
-        http://sites.google.com/site/richardhenwood/project/private-recorder
+        http://sites.google.com/site/richardhenwood/project/skype-record
         TODO automate this step.'''
         sys.exit(4)
     if skype_pid is None:
